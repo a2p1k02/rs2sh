@@ -1,19 +1,23 @@
 use std::io::{ stdout, stdin, Write };
-use std::process::Command;
+use std::process::{ Command, Stdio };
 use std::env;
 use std::path::Path;
 
 fn main() {
     loop {
         let mut input = String::new();
-        print!("> ");
+
+        let output = Command::new("whoami").stdout(Stdio::piped()).output().unwrap();
+        let username = String::from_utf8(output.stdout).unwrap();
+
+        print!("{}> ", username.trim());
         stdout().flush().unwrap();
         stdin().read_line(&mut input).unwrap();
-    
+
         let mut parts = input.trim().split_whitespace();
         let command = parts.next().unwrap();
         let args = parts;
-
+        
         match command {
             "cd" => {
                 let new_dir = args.peekable().peek().map_or("/", |x| *x);
@@ -24,16 +28,14 @@ fn main() {
             },
             "exit" => return,
             command => {
-                let mut child = Command::new(command)
+                let child = Command::new(command)
                                 .args(args)
                                 .spawn();
-
                 match child {
-                    Ok(mut child) => { child.wait(); },
+                    Ok(mut child) => { let _ = child.wait(); },
                     Err(e) => eprintln!("{}", e),
                 }
             }
         }
-
     }
 }
